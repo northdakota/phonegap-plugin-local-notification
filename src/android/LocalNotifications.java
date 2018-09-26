@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Random;
+import android.app.NotificationChannel;
 
 /**
 * This class exposes methods in Cordova that can be called from JavaScript.
@@ -76,6 +77,7 @@ public class LocalNotifications extends CordovaPlugin {
         String body = args.getString(3);
         String tag = args.getString(4);
         String icon = args.getString(5);
+        String NOTIFICATION_CHANNEL_ID = "my_channel_id_01";
 
         Context context = cordova.getActivity();
 
@@ -85,17 +87,25 @@ public class LocalNotifications extends CordovaPlugin {
 
         int requestCode = new Random().nextInt();
         PendingIntent contentIntent = PendingIntent.getActivity(context, requestCode, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+        NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationCompat.Builder mBuilder = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel notificationChannel = new NotificationChannel("ID", "Name", importance);
+            mNotificationManager.createNotificationChannel(notificationChannel);
+            mBuilder = new NotificationCompat.Builder(context, notificationChannel.getId());
+        } else {
+            mBuilder = new NotificationCompat.Builder(context);
+        }
 
         // Build notifications
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(context)
-                        .setWhen(System.currentTimeMillis())
-                        .setContentTitle(title)
-                        .setContentText(body)
-                        .setSmallIcon(context.getApplicationInfo().icon)
-                        .setContentIntent(contentIntent)
-                        .setAutoCancel(true);
+        mBuilder
+            .setWhen(System.currentTimeMillis())
+            .setContentTitle(title)
+            .setContentText(body)
+            .setSmallIcon(context.getApplicationInfo().icon)
+            .setContentIntent(contentIntent)
+            .setAutoCancel(true);
 
         if (icon.startsWith("http://") || icon.startsWith("https://")) {
             Bitmap bitmap = getBitmapFromURL(icon);
@@ -103,7 +113,6 @@ public class LocalNotifications extends CordovaPlugin {
         }
 
         // Show notification
-        NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(tag, 0, mBuilder.build());
     }
 
